@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Data;
+using System.Diagnostics;
 using System.Linq;
 using System.Management;
 using System.Security.Cryptography;
@@ -80,11 +81,46 @@ namespace Auth_Tool
             {
                 // 根据机器名称、主机名称、MAC地址生成唯一证书
                 string MachineName = Environment.MachineName;
-                string ComputerName = SystemInformation.ComputerName;
-                string MacAddress = GetMacAddr_Local();
-                MachineCode = GetHash("Address >>" + MachineName + ComputerName + MacAddress);
+                //string ComputerName = SystemInformation.ComputerName;
+                //string MacAddress = GetMacAddr_Local();
+                //MachineCode = GetHash("Address >>" + MachineName + ComputerName + MacAddress);
+                //MachineCode = "Address >>" + MachineName + ComputerName + MacAddress;
+                MachineCode = GetHash("Address >>" + MachineName + GetCPUID());
             }
             return MachineCode;
+        }
+
+        private static string ExecuteCMD(string cmd, Func<string, string> filterFunc)
+        {
+            var process = new Process();
+            process.StartInfo.FileName = "cmd.exe";
+            process.StartInfo.UseShellExecute = false;//是否使用操作系统shell启动
+            process.StartInfo.RedirectStandardInput = true;//接受来自调用程序的输入信息
+            process.StartInfo.RedirectStandardOutput = true;//由调用程序获取输出信息
+            process.StartInfo.RedirectStandardError = true;//重定向标准错误输出
+            process.StartInfo.CreateNoWindow = true;//不显示程序窗口
+            process.Start();//启动程序
+            process.StandardInput.WriteLine(cmd + " &exit");
+            process.StandardInput.AutoFlush = true;
+            //获取cmd窗口的输出信息
+            var output = process.StandardOutput.ReadToEnd();
+            process.WaitForExit();
+            process.Close();
+            //return filterFunc(output);
+            return output;
+        }
+
+        public static string GetCPUID()
+        {
+            var cmd = "wmic csproduct get UUID";
+            var output = ExecuteCMD(cmd, null);
+            var match = System.Text.RegularExpressions.Regex.Match(output, @"[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}");
+            if (match.Success)
+            {
+                return match.Value;
+            }
+            //return cpuid;
+            return cmd;
         }
 
         /// <summary>
