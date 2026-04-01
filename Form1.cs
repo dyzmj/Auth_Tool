@@ -1,12 +1,13 @@
-﻿using System;
+﻿using Microsoft.Win32;
+using System;
 using System.Data;
 using System.Diagnostics;
 using System.Linq;
 using System.Management;
+using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Windows.Forms;
-using Microsoft.Win32;
 
 namespace Auth_Tool
 {
@@ -80,12 +81,17 @@ namespace Auth_Tool
             if (string.IsNullOrEmpty(MachineCode))
             {
                 // 根据机器名称、主机名称、MAC地址生成唯一证书
-                string MachineName = Environment.MachineName;
+                //string MachineName = Environment.MachineName;
+                string MachineName = GetHostname();
                 //string ComputerName = SystemInformation.ComputerName;
                 //string MacAddress = GetMacAddr_Local();
                 //MachineCode = GetHash("Address >>" + MachineName + ComputerName + MacAddress);
                 //MachineCode = "Address >>" + MachineName + ComputerName + MacAddress;
                 MachineCode = GetHash("Address >>" + MachineName + GetCPUID());
+                Console.WriteLine("MachineName: " + MachineName);
+                Console.WriteLine("GetCPUID: " + GetCPUID());
+                Console.WriteLine("MachineCode: " + MachineCode);
+                //MessageBox.Show("Address >>" + MachineName + GetCPUID());
             }
             return MachineCode;
         }
@@ -121,6 +127,30 @@ namespace Auth_Tool
             }
             //return cpuid;
             return cmd;
+        }
+
+        public static string GetHostname()
+        {
+            var cmd = "hostname";
+            var output = ExecuteCMD(cmd, null);
+            //string lastLine = output.ToString().Trim().Split('\n')[^1]; // 获取最后一行
+            //Console.WriteLine("output: " + output.ToUpper());
+            //return output.ToUpper();
+
+            // 按行分割输出
+            string[] lines = output.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+
+            // 返回最后一行（C# 7.3 版本用传统方式）
+            if (lines.Length > 0)
+            {
+                return (lines[lines.Length - 1]).ToUpper();
+            }
+            else
+            {
+                MessageBox.Show("Hostname获取错误", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return null;
+            }
+
         }
 
         /// <summary>
